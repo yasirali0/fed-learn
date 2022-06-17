@@ -18,7 +18,7 @@ class Server:
         self.file_logger = file_logger
 
     def run(self):
-        random_round = [2, 9, 15]  # random.randint(1, self.config.rounds)
+        random_round = [2, 5, 9, 15, 21, 27]  # random.randint(1, self.config.rounds)
 
         self.connect_clients()
         for round in (range(1, self.config.rounds + 1)):
@@ -27,7 +27,8 @@ class Server:
             selected = self.clients_selection()
             logging.info("selected clients:{}".format(selected))
             random_client = -1
-            if random_round == round:
+            # if random_round == round:          # I commented out this because this is wrong as it compares a list with an int which will always be false
+            if round in random_round:            # This is the correct way to check if this specific round is in the random_round list
                 random_client = random.randint(0, self.config.num_clients * self.config.frac - 1)
                 print(random_client)
             info = self.clients.train(selected, random_client)
@@ -41,12 +42,12 @@ class Server:
             test_acc, test_loss = self.test()
 
             for i in range(len(info["test_acc"])):
-                # id_round_weight_localtest_test_if_
+                # id_round_weight_localLoss_localTest_test_maliciousClientId
                 self.file_logger.debug(
-                    "{0}_{1}_{2}_{3}_{4}_{5}".format(i, round, info["weights"][i], info["loss"][i],
+                    "{0}_{1}_{2}_{3}_{4}_{5}_{6}".format(i, round, info["weights"][i], info["loss"][i],
                                                      info["test_acc"][i], test_acc, random_client))
             logging.info(
-                "training acc: {:.4f},test acc: {:.4f}, test_loss: {:.4f}\n".format(train_acc, test_acc, test_loss,
+                "training acc: {:.4f}, test acc: {:.4f}, test_loss: {:.4f}\n".format(train_acc, test_acc, test_loss,
                                                                                     info["test_acc"]))
             if test_acc > self.config.target_accuracy:
                 self.target_round = round
