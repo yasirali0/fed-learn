@@ -7,6 +7,10 @@ from utils import get_data
 from torch.utils.data import DataLoader
 import threading
 
+###############################################
+from skimage.util import random_noise
+###############################################
+
 
 class Client:
     def __init__(self, config):
@@ -35,7 +39,7 @@ class Client:
         self.model = model
         self.local_model = model
 
-    def local_train(self, user_id, dataloaders, verbose=1):
+    def local_train(self, user_id, dataloaders, poison=False, verbose=1):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         model = copy.deepcopy(self.model)
         model.to(device)
@@ -50,6 +54,12 @@ class Client:
             epoch_acc = 0
 
             for inputs, labels in dataloaders:
+
+                if poison:
+                    inputs = random_noise(inputs, mode='gaussian', mean=0, var=0.2 ** 2, clip=True)
+                    inputs = random_noise(inputs, mode='s&p', amount=0.1)
+                    inputs = torch.tensor(inputs, dtype=torch.float32)
+
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 optimizer.zero_grad()
@@ -91,20 +101,29 @@ class Client:
         self.len_dataset = []
 
         # multithreading
-        threads = [Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])) for client in
-                   selected_client]
+        # threads = [Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])) for client in
+        #            selected_client]
+
+        threads = []
+
+        for client in selected_client:
+            if client != malious_client:
+                threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])))
+            else:
+                threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], poison=True)))
+
         [t.start() for t in threads]
         [t.join() for t in threads]
 
-        if malious_client != -1:
-            print("INIT", malious_client)
-            # 악의적인 client -> 모델 초기화
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-            tmp = copy.deepcopy(self.model)
-            tmp.to(device)
-            tmp.load_state_dict(self.weights[malious_client])
-            tmp.apply(init_weight)
-            self.weights[malious_client] = tmp.state_dict()
+        # if malious_client != -1:
+        #     print("INIT", malious_client)
+        #     # 악의적인 client -> 모델 초기화
+        #     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        #     tmp = copy.deepcopy(self.model)
+        #     tmp.to(device)
+        #     tmp.load_state_dict(self.weights[malious_client])
+        #     tmp.apply(init_weight)
+        #     self.weights[malious_client] = tmp.state_dict()
 
         threads = [Thread(target=self.test_local(user_id=client)) for client in selected_client]
         [t.start() for t in threads]
