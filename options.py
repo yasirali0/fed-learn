@@ -9,7 +9,7 @@ def args_parser():
                         help="the name of dataset")
 
     parser.add_argument("--num_clients", type=int, default=10)
-    parser.add_argument("--frac", type=float, default=1)          # fraction of clients to be used for training in a round. [0, 1]
+    parser.add_argument("--frac", type=float, default=1)          # fraction of clients to be used for training in a round. values range from [0, 1]
     parser.add_argument("--per_round", type=int, default=10)
     parser.add_argument("--IID", type=bool, default=True)
 
@@ -22,7 +22,7 @@ def args_parser():
 
     parser.add_argument("--file_name", type=str, default="test.log", help="the log file name")
 
-    parser.add_argument("--data_poison", type=bool, default=False)
+    parser.add_argument("--data_poison", type=bool, default=True)
 
     args = parser.parse_args()
 

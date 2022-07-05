@@ -18,7 +18,7 @@ class Server:
         self.file_logger = file_logger
 
     def run(self):
-        random_round = [1, 2, 3, 6, 8, 9]  # random.randint(1, self.config.rounds)
+        random_round = [i+1 for i in range(1, self.config.rounds + 1)]  # random.randint(1, self.config.rounds)
 
         self.connect_clients()
         for round in (range(1, self.config.rounds + 1)):
@@ -33,16 +33,21 @@ class Server:
                 print(random_client)
             info = self.clients.train(selected, random_client)
 
+            ################# timpany ############
+            new_info = self.timpany(info)
+            #####################################
+            
             logging.info("aggregate weights")
             # update glob model
-            glob_weights = self.fed_avg(info)
-            self.model.load_state_dict(glob_weights)
+            # glob_weights = self.fed_avg(info)
+            glob_weights = self.fed_avg(new_info)
+            self.model.load_state_dict(glob_weights)    # global model update
 
             train_acc = self.getacc(info)
-            test_acc, test_loss = self.test()
+            test_acc, test_loss = self.test()       # global model test accuracy and loss
 
             for i in range(len(info["test_acc"])):
-                # id_round_weight_localLoss_localTest_test_maliciousClientId
+                # id_round_weight_localLoss_localTest_globaltest_maliciousClientId
                 self.file_logger.debug(
                     "{0}_{1}_{2}_{3}_{4}_{5}_{6}".format(i, round, info["weights"][i], info["loss"][i],
                                                      info["test_acc"][i], test_acc, random_client))
@@ -55,7 +60,7 @@ class Server:
                 break
 
             # broadcast glob weights
-            self.clients.update(glob_weights)
+            self.clients.update(glob_weights)      # update the local model with the new global model
 
     def load_model(self):
         dataset = self.config.dataset
@@ -65,6 +70,41 @@ class Server:
         model = get_model(dataset, self.config)
         logging.debug(model)
         return model
+
+    #####################################################################
+    def timpany(self, info):
+        # the accuracies of the client models on the global test dataset is already stored in the info dictionary,
+        # so we can proceed to the evaluation of local model accuracy using control charts
+        sum = 0
+        acc = []
+        for i in range(len(info["test_acc"])):
+            acc.append(info["test_acc"][i])
+        acc = np.array(acc)
+
+        for a in acc:
+            sum += a
+        
+        CL = sum / len(acc)
+        self.file_logger.debug(f"CL: {CL}")
+        std_dev = np.std(acc)
+
+        alpha = 1       # can be 1, 2 or 3
+        # UCL = CL + 1.96 * std_dev / np.sqrt(len(acc))  # suggested by GitHub Copilot
+        UCL = CL + (alpha * std_dev)
+        LCL = CL - (alpha * std_dev)
+
+        new_info = {'weights': [], 'len': []}    # will contain only those client models' weights which have accuracy greater than or equal to CL
+        for b in range(len(acc)):
+            if acc[b] >= CL:
+                new_info['weights'].append(info['weights'][b])
+                new_info['len'].append(info['len'][b])
+            
+            else:
+                self.file_logger.debug(f"client {b} has accuracy {info['test_acc']}, and is not selected")
+        
+        return new_info
+    
+    #####################################################################
 
     def fed_avg(self, info):
         weights = info["weights"]
