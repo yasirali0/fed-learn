@@ -18,7 +18,7 @@ class Server:
         self.file_logger = file_logger
 
     def run(self):
-        random_round = [i+1 for i in range(1, self.config.rounds + 1)]  # random.randint(1, self.config.rounds)
+        random_round = [i for i in range(1, self.config.rounds + 1)]  # random.randint(1, self.config.rounds)
 
         self.connect_clients()
         for round in (range(1, self.config.rounds + 1)):
