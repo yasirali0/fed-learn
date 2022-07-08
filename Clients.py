@@ -110,7 +110,7 @@ class Client:
             if client != malious_client:
                 threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])))
             else:
-                threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])), poison=True)
+                threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], poison=True)))
 
         [t.start() for t in threads]
         [t.join() for t in threads]
