@@ -56,8 +56,8 @@ class Client:
             for inputs, labels in dataloaders:
 
                 if poison:
-                    inputs = random_noise(inputs, mode='gaussian', mean=0, var=0.2 ** 2, clip=True)
-                    inputs = random_noise(inputs, mode='s&p', amount=0.1)
+                    inputs = random_noise(inputs, mode='gaussian', mean=0, var=self.config.std ** 2, clip=True)
+                    inputs = random_noise(inputs, mode='s&p', amount=self.config.amount)
                     inputs = torch.tensor(inputs, dtype=torch.float32)
 
                 inputs = inputs.to(device)
@@ -110,7 +110,7 @@ class Client:
             if client != malious_client:
                 threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])))
             else:
-                threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], poison=self.config.data_poison)))
+                threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])), poison=True)
 
         [t.start() for t in threads]
         [t.join() for t in threads]

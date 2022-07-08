@@ -100,7 +100,7 @@ class Server:
                 new_info['len'].append(info['len'][b])
             
             else:
-                self.file_logger.debug(f"client {b} has accuracy {info['test_acc']}, and is not selected")
+                self.file_logger.debug(f"client {b} has accuracy {info['test_acc'][b]}, and is rejected")
         
         return new_info
     

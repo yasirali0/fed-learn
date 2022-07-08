@@ -7,13 +7,17 @@ import numpy as np
 
 def get_data(dataset, config):
     if dataset == "cifar10":
-        return CIFAR(config).load_data(IID=config.IID)
+        return CIFAR10(config).load_data(IID=config.IID)
 
+    #################################################
+    if dataset == "cifar100":
+        return CIFAR100(config).load_data(IID=config.IID)
+    
     if dataset == "MNIST":
         return MNIST(config).load_data(IID=config.data.IID)
 
 
-class CIFAR:
+class CIFAR10:
     def __init__(self, config):
         self.config = config
         self.trainset = None
@@ -39,6 +43,35 @@ class CIFAR:
             splited_train = random_split(self.trainset, length)
 
         return splited_train, self.testset
+
+
+class CIFAR100:
+    def __init__(self, config):
+        self.config = config
+        self.trainset = None
+        self.testset = None
+
+    def load_data(self, IID=True):
+        data_dir = './data/' + self.config.dataset + "/"
+        apply_transform = transforms.Compose(
+            [transforms.ToTensor(),
+             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+        self.trainset = datasets.CIFAR100(data_dir, train=True, download=True,
+                                         transform=apply_transform)
+
+        self.testset = datasets.CIFAR100(data_dir, train=False, download=True,
+                                        transform=apply_transform)
+
+        total_clients = self.config.num_clients
+        total_sample = self.trainset.data.shape[0]
+        length = [total_sample // total_clients] * total_clients
+
+        if IID:
+            splited_train = random_split(self.trainset, length)
+
+        return splited_train, self.testset
+
 
 
 class MNIST:

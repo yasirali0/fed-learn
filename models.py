@@ -5,15 +5,18 @@ import torch.nn.functional as F
 
 def get_model(dataset_name, args):
     if dataset_name == "cifar10":
-        return CNNCifar(args)
+        return CNNCifar10(args)
+
+    if dataset_name == "cifar100":
+        return CNNCifar100(args)
 
     if dataset_name == "MNIST":
         return Mnist_Net()
 
 
-class CNNCifar(nn.Module):
+class CNNCifar10(nn.Module):
     def __init__(self, args):
-        super(CNNCifar, self).__init__()
+        super(CNNCifar10, self).__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
@@ -30,6 +33,28 @@ class CNNCifar(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return F.log_softmax(x, dim=1)
+
+
+class CNNCifar100(nn.Module):
+    def __init__(self, args):
+        super(CNNCifar100, self).__init__()
+        self.conv1 = nn.Conv2d(3, 32, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(32, 64, 5)
+        self.fc1 = nn.Linear(64 * 5 * 5, 1024)
+        self.fc2 = nn.Linear(1024, 512)
+        self.fc3 = nn.Linear(512, 100)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(-1, 64 * 5 * 5)
+        # x = x.view(-1, 16 * 5 * 5)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return F.log_softmax(x, dim=1)
+
 
 
 class Mnist_Net(nn.Module):
