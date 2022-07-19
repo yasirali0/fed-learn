@@ -26,8 +26,8 @@ class Server:
             # select clients which participate training
             selected = self.clients_selection()
             logging.info("selected clients:{}".format(selected))
-            mal_data_clients = -1
-            mal_model_clients = -1
+            mal_data_clients = []
+            mal_model_clients = []
             # if random_round == round:          # I commented out this because this is wrong as it compares a list with an int which will always be false
             # if round in mal_round:            # This is the correct way to check if this specific round is in the random_round list
             # make a client malicious with probability 0.5
@@ -35,11 +35,17 @@ class Server:
                 # mal_client = random.randint(0, self.config.num_clients * self.config.frac - 1)
                 n_mal_clients = int(self.config.num_clients * self.config.mal_clients_frac)
                 
-                n_mal_data_clients = int(np.cei(self.config.data_v_model_poison * n_mal_clients))
+                n_mal_data_clients = int(np.ceil(self.config.data_v_model_poison * n_mal_clients))
+                
+                if self.config.std == 0.0 and self.config.amount == 0.0:
+                    n_mal_data_clients = 0
+
                 n_mal_model_clients = n_mal_clients - n_mal_data_clients
 
                 mal_data_clients = np.random.choice(selected, n_mal_data_clients, replace=False)
+                
                 remain_clients = [c for c in selected if c not in mal_data_clients]
+                
                 mal_model_clients = np.random.choice(remain_clients, n_mal_model_clients, replace=False)
 
                 print(mal_data_clients)

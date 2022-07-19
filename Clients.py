@@ -107,12 +107,7 @@ class Client:
 
         threads = []
 
-        if self.config.std == 0.0 and self.config.amount == 0.0:
-            poison = False
-        else:
-            poison = True
-
-        if mal_data_clients == -1:
+        if len(mal_data_clients) == 0:
             for client in selected_client:
                 threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])))
         else:
@@ -120,7 +115,7 @@ class Client:
                 if client not in mal_data_clients:
                     threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])))
                 else:
-                    threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], poison=poison)))
+                    threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], poison=True)))
 
 
         [t.start() for t in threads]
@@ -137,7 +132,7 @@ class Client:
         #     self.weights[malicious_client] = tmp.state_dict()
         
         # implement model poisoning by tweaking the weights of the malicious client model
-        if mal_model_clients != -1:
+        if len(mal_model_clients) != 0:
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             tmp = copy.deepcopy(self.model)
             tmp.to(device)
