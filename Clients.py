@@ -1,4 +1,4 @@
-from torch import nn, optim
+from torch import nn, optim, poisson
 import torch
 import copy
 import logging
@@ -9,6 +9,7 @@ import threading
 
 ###############################################
 from skimage.util import random_noise
+import numpy as np
 ###############################################
 
 
@@ -92,7 +93,7 @@ class Client:
     def update(self, glob_weights):
         self.model.load_state_dict(glob_weights)
 
-    def train(self, selected_client, malious_client):
+    def train(self, selected_client, mal_data_clients, mal_model_clients):
         self.weights = []
         self.epoch_loss = []
         self.running_corrects = []
@@ -106,24 +107,46 @@ class Client:
 
         threads = []
 
-        for client in selected_client:
-            if client != malious_client:
+        if self.config.std == 0.0 and self.config.amount == 0.0:
+            poison = False
+        else:
+            poison = True
+
+        if mal_data_clients == -1:
+            for client in selected_client:
                 threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])))
-            else:
-                threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], poison=True)))
+        else:
+            for client in selected_client:
+                if client not in mal_data_clients:
+                    threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])))
+                else:
+                    threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], poison=poison)))
+
 
         [t.start() for t in threads]
         [t.join() for t in threads]
 
-        # if malious_client != -1:
-        #     print("INIT", malious_client)
+        # if malicious_client != -1:
+        #     print("INIT", malicious_client)
         #     # 악의적인 client -> 모델 초기화
         #     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         #     tmp = copy.deepcopy(self.model)
         #     tmp.to(device)
-        #     tmp.load_state_dict(self.weights[malious_client])
+        #     tmp.load_state_dict(self.weights[malicious_client])
         #     tmp.apply(init_weight)
-        #     self.weights[malious_client] = tmp.state_dict()
+        #     self.weights[malicious_client] = tmp.state_dict()
+        
+        # implement model poisoning by tweaking the weights of the malicious client model
+        if mal_model_clients != -1:
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            tmp = copy.deepcopy(self.model)
+            tmp.to(device)
+
+            for client in mal_model_clients:
+                tmp.load_state_dict(self.weights[client])
+                tmp.apply(tweak_weights)
+                self.weights[client] = tmp.state_dict()
+
 
         threads = [Thread(target=self.test_local(user_id=client)) for client in selected_client]
         [t.start() for t in threads]
@@ -202,3 +225,27 @@ def init_weight(module):
     elif class_name.find("BatchNorm2d") != -1:
         nn.init.normal_(module.weight.data, 1.0, 0.02)
         nn.init.constant(module.bias.data, 0.0)
+
+
+def tweak_weights(module):
+    # for name, param in model.named_parameters():
+    #     if "weight" in name:
+    #         param.data.add_(0.5)
+    #         param.data.mul_(-1.5)
+    #     elif "bias" in name:
+    #         param.data.add_(0.5)
+    #         param.data.mul_(-1.5)
+
+    class_name = module.__class__.__name__
+
+    if class_name.find("Conv") != -1:
+        module.weight.data.add_(0.5)
+        module.weight.data.mul_(-1.5)
+        module.bias.data.add_(0.5)
+        module.bias.data.mul_(-1.5)
+
+    if class_name.find("Linear") != -1:
+        module.weight.data.add_(0.5)
+        module.weight.data.mul_(-1.5)
+        module.bias.data.add_(0.5)
+        module.bias.data.mul_(-1.5)

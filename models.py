@@ -32,7 +32,8 @@ class CNNCifar10(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        return F.log_softmax(x, dim=1)
+        # return F.log_softmax(x, dim=1)
+        return x
 
 
 class CNNCifar100(nn.Module):
@@ -53,7 +54,8 @@ class CNNCifar100(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        return F.log_softmax(x, dim=1)
+        # return F.log_softmax(x, dim=1)
+        return x
 
 
 
@@ -74,4 +76,5 @@ class Mnist_Net(nn.Module):
         x = self.pool(F.relu(self.conv2(x)))
         x = x.view(-1, 4 * 4 * 64)
         x = self.fc(x)
+        # x = F.log_softmax(x, dim=1)
         return x

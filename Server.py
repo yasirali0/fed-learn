@@ -18,7 +18,7 @@ class Server:
         self.file_logger = file_logger
 
     def run(self):
-        random_round = [i for i in range(1, self.config.rounds + 1)]  # random.randint(1, self.config.rounds)
+        # mal_round = [i for i in range(1, self.config.rounds + 1)]  # random.randint(1, self.config.rounds)
 
         self.connect_clients()
         for round in (range(1, self.config.rounds + 1)):
@@ -26,12 +26,26 @@ class Server:
             # select clients which participate training
             selected = self.clients_selection()
             logging.info("selected clients:{}".format(selected))
-            random_client = -1
+            mal_data_clients = -1
+            mal_model_clients = -1
             # if random_round == round:          # I commented out this because this is wrong as it compares a list with an int which will always be false
-            if round in random_round:            # This is the correct way to check if this specific round is in the random_round list
-                random_client = random.randint(0, self.config.num_clients * self.config.frac - 1)
-                print(random_client)
-            info = self.clients.train(selected, random_client)
+            # if round in mal_round:            # This is the correct way to check if this specific round is in the random_round list
+            # make a client malicious with probability 0.5
+            if random.random() < self.config.mal_round_prob:
+                # mal_client = random.randint(0, self.config.num_clients * self.config.frac - 1)
+                n_mal_clients = int(self.config.num_clients * self.config.mal_clients_frac)
+                
+                n_mal_data_clients = int(np.cei(self.config.data_v_model_poison * n_mal_clients))
+                n_mal_model_clients = n_mal_clients - n_mal_data_clients
+
+                mal_data_clients = np.random.choice(selected, n_mal_data_clients, replace=False)
+                remain_clients = [c for c in selected if c not in mal_data_clients]
+                mal_model_clients = np.random.choice(remain_clients, n_mal_model_clients, replace=False)
+
+                print(mal_data_clients)
+                print(mal_model_clients)
+
+            info = self.clients.train(selected, mal_data_clients, mal_model_clients)
 
             ################# timpany ############
             new_info = self.timpany(info)
@@ -48,12 +62,13 @@ class Server:
 
             for i in range(len(info["test_acc"])):
                 # id_round_weight_localLoss_localTest_globaltest_maliciousClientId
+                self.file_logger.debug(f"malicious client(s) in round {round}\n:malicious data client(s): {mal_data_clients}\tmalicious model client(s): {mal_model_clients}")
                 self.file_logger.debug(
-                    "{0}_{1}_{2}_{3}_{4}_{5}_{6}".format(i, round, info["weights"][i], info["loss"][i],
-                                                     info["test_acc"][i], test_acc, random_client))
+                    "{0}_{1}_{2}_{3}_{4}_{5}".format(i, round, info["weights"][i], info["loss"][i], info["test_acc"][i], test_acc))
+
             logging.info(
-                "training acc: {:.4f}, test acc: {:.4f}, test_loss: {:.4f}\n".format(train_acc, test_acc, test_loss,
-                                                                                    info["test_acc"]))
+                "training acc: {:.4f}, test acc: {:.4f}, test_loss: {:.4f}\n".format(train_acc, test_acc, test_loss, info["test_acc"]))
+            
             if test_acc > self.config.target_accuracy:
                 self.target_round = round
                 logging.info("target achieved")
@@ -124,11 +139,11 @@ class Server:
         self.clients.load_data()
 
     def clients_selection(self):
-        # randomly selection
+        # random selection
         frac = self.config.frac
         n_clients = max(1, int(self.config.num_clients * frac))
-        training_clients = np.arange(n_clients)
-        # training_clients = np.random.choice(self.client_index, n_clients, replace=False)
+        # training_clients = np.arange(n_clients)
+        training_clients = np.random.choice(self.client_index, n_clients, replace=False)
         return training_clients
 
     def test(self):
