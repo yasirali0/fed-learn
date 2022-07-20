@@ -148,8 +148,10 @@ class Server:
         # random selection
         frac = self.config.frac
         n_clients = max(1, int(self.config.num_clients * frac))
-        # training_clients = np.arange(n_clients)
-        training_clients = np.random.choice(self.client_index, n_clients, replace=False)
+        ####################################################################################
+        training_clients = np.arange(n_clients)
+        # training_clients = np.random.choice(self.client_index, n_clients, replace=False)
+        ####################################################################################
         return training_clients
 
     def test(self):

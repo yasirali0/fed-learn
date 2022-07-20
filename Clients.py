@@ -223,24 +223,18 @@ def init_weight(module):
 
 
 def tweak_weights(module):
-    # for name, param in model.named_parameters():
-    #     if "weight" in name:
-    #         param.data.add_(0.5)
-    #         param.data.mul_(-1.5)
-    #     elif "bias" in name:
-    #         param.data.add_(0.5)
-    #         param.data.mul_(-1.5)
 
     class_name = module.__class__.__name__
 
     if class_name.find("Conv") != -1:
-        module.weight.data.add_(0.5)
-        module.weight.data.mul_(-1.5)
-        module.bias.data.add_(0.5)
-        module.bias.data.mul_(-1.5)
+        mean = torch.mean(module.weight.data)
+        module.weight.data.add_(mean)
+        # module.weight.data.mul_(-1.5)
+        module.bias.data.add_(mean)
+        # module.bias.data.mul_(-1.5)
 
     if class_name.find("Linear") != -1:
-        module.weight.data.add_(0.5)
-        module.weight.data.mul_(-1.5)
-        module.bias.data.add_(0.5)
-        module.bias.data.mul_(-1.5)
+        module.weight.data.add_(mean)
+        # module.weight.data.mul_(-1.5)
+        module.bias.data.add_(mean)
+        # module.bias.data.mul_(-1.5)
