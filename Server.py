@@ -51,6 +51,8 @@ class Server:
                 print(mal_data_clients)
                 print(mal_model_clients)
 
+            self.file_logger.debug(f"malicious client(s) in round {round}\n:malicious data client(s): {mal_data_clients}\tmalicious model client(s): {mal_model_clients}")
+            
             info = self.clients.train(selected, mal_data_clients, mal_model_clients)
 
             ################# timpany ############
@@ -67,8 +69,7 @@ class Server:
             test_acc, test_loss = self.test()       # global model test accuracy and loss
 
             for i in range(len(info["test_acc"])):
-                # id_round_weight_localLoss_localTest_globaltest_maliciousClientId
-                self.file_logger.debug(f"malicious client(s) in round {round}\n:malicious data client(s): {mal_data_clients}\tmalicious model client(s): {mal_model_clients}")
+                # id_round_weight_localLoss_localTest_globaltest_maliciousClientId    
                 self.file_logger.debug(
                     "{0}_{1}_{2}_{3}_{4}_{5}".format(i, round, info["weights"][i], info["loss"][i], info["test_acc"][i], test_acc))
 
