@@ -52,17 +52,20 @@ class Server:
                 print(mal_model_clients)
 
             self.file_logger.debug(f"malicious client(s) in round {round}\n:malicious data client(s): {mal_data_clients}\tmalicious model client(s): {mal_model_clients}")
-            
+
             info = self.clients.train(selected, mal_data_clients, mal_model_clients)
 
-            ################# timpany ############
-            new_info = self.timpany(info)
-            #####################################
+            glob_weights = None
+            if self.config.use_timpany:
+                new_info = self.timpany(info)
+                # update glob model
+                glob_weights = self.fed_avg(new_info)
+            else:
+                # update glob model
+                glob_weights = self.fed_avg(info)
             
             logging.info("aggregate weights")
-            # update glob model
-            # glob_weights = self.fed_avg(info)
-            glob_weights = self.fed_avg(new_info)
+
             self.model.load_state_dict(glob_weights)    # global model update
 
             train_acc = self.getacc(info)

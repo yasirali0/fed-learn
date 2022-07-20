@@ -28,6 +28,8 @@ def args_parser():
     parser.add_argument("--std", type=float, help="standard deviation value for the gaussian noise to add to the training data of a malicious client", default=0.0)
     parser.add_argument("--amount", type=float, help="amount value for the salt&pepper noise to add to the training data of a malicious client. range is <0, 1>", default=0.0)
 
+    parser.add_argument("--use_timpany", type=bool, default=True)
+
     args = parser.parse_args()
 
     return args

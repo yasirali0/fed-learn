@@ -226,14 +226,8 @@ def tweak_weights(module):
 
     class_name = module.__class__.__name__
 
-    if class_name.find("Conv") != -1:
+    if class_name.find("Conv") != -1 or class_name.find("Linear") != -1:
         mean = torch.mean(module.weight.data)
-        module.weight.data.add_(mean)
-        # module.weight.data.mul_(-1.5)
-        module.bias.data.add_(mean)
-        # module.bias.data.mul_(-1.5)
-
-    if class_name.find("Linear") != -1:
         module.weight.data.add_(mean)
         # module.weight.data.mul_(-1.5)
         module.bias.data.add_(mean)
