@@ -133,11 +133,11 @@ class Client:
         
         # implement model poisoning by tweaking the weights of the malicious client model
         if len(mal_model_clients) != 0:
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-            tmp = copy.deepcopy(self.model)
-            tmp.to(device)
 
             for client in mal_model_clients:
+                device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                tmp = copy.deepcopy(self.model)
+                tmp.to(device)
                 tmp.load_state_dict(self.weights[client])
                 tmp.apply(tweak_weights)
                 self.weights[client] = tmp.state_dict()
@@ -228,14 +228,20 @@ def tweak_weights(module):
 
     if class_name.find("Conv") != -1 or class_name.find("Linear") != -1:
         mean = torch.mean(module.weight.data)
+        std = torch.std(module.weight.data)
 
-        module.weight.data.add_(np.random.randint(1, 3) * mean)
+        # add the mean to the weight at random locations
+        # module.weight.data.add_(torch.randint_like(module.weight.data, 0, 2) * mean / std)
+        module.weight.data.add_(torch.randint_like(module.weight.data, 0, 7) * mean)
+
+        # module.weight.data.add_(np.random.randint(1, 3) * mean)
         # module.weight.data.mul_(-1.5)
         # module.bias.data.add_(mean)
+        module.bias.data.add_(torch.randint_like(module.bias.data, 0, 7) * mean)
         # module.bias.data.add_(2 * mean)
         # module.bias.data.mul_(-1.5)
     
-    elif class_name.find("BatchNorm2d") != -1:
-        mean = torch.mean(module.weight.data)
-        module.weight.data.add_(np.random.randint(1, 3) * mean)
-        module.bias.data.add_(np.random.randint(1, 3) * mean)
+    # elif class_name.find("BatchNorm2d") != -1:
+    #     mean = torch.mean(module.weight.data)
+    #     module.weight.data.add_(np.random.randint(1, 3) * mean)
+    #     module.bias.data.add_(np.random.randint(1, 3) * mean)
