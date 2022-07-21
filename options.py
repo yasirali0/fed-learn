@@ -7,7 +7,10 @@ def args_parser():
                         help='Log messages level.')
     parser.add_argument("-d", "--dataset", type=str, default="cifar10",
                         help="the name of dataset")
-
+    parser.add_argument("--model", type=str, default="cifar-10", help="the name of model", choices=["cifar-10", "vgg16", "cifar-100", "mnist"])   # cifar-10 --> for cifar-10 dataset
+                                                                                                                                                  # vgg16 --> for cifar-10 and cifar-100 dataset
+                                                                                                                                                  # mnist --> for mnist dataset
+    
     parser.add_argument("--num_clients", type=int, default=10)    # total number of clients in the federated learning system
     parser.add_argument("--frac", type=float, default=1)          # fraction of clients to be used for training in a round. values range from [0, 1]
     parser.add_argument("--mal_clients_frac", type=float, default=0.1)
@@ -19,7 +22,6 @@ def args_parser():
     parser.add_argument("--local_ep", type=int, default=5)
     parser.add_argument("--local_bs", type=int, default=10)
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
-    parser.add_argument("--model", type=str, default="cifar-10")
 
     parser.add_argument("--file_name", type=str, default="test.log", help="the log file name")
 

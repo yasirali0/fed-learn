@@ -228,7 +228,14 @@ def tweak_weights(module):
 
     if class_name.find("Conv") != -1 or class_name.find("Linear") != -1:
         mean = torch.mean(module.weight.data)
-        module.weight.data.add_(mean)
+
+        module.weight.data.add_(np.random.randint(1, 3) * mean)
         # module.weight.data.mul_(-1.5)
-        module.bias.data.add_(mean)
+        # module.bias.data.add_(mean)
+        # module.bias.data.add_(2 * mean)
         # module.bias.data.mul_(-1.5)
+    
+    elif class_name.find("BatchNorm2d") != -1:
+        mean = torch.mean(module.weight.data)
+        module.weight.data.add_(np.random.randint(1, 3) * mean)
+        module.bias.data.add_(np.random.randint(1, 3) * mean)
