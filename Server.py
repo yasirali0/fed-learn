@@ -22,7 +22,8 @@ class Server:
 
         self.connect_clients()
         for round in (range(1, self.config.rounds + 1)):
-            logging.info("-" * 22 + "round {}".format(round) + "-" * 30)
+            # logging.info("-" * 22 + "round {}".format(round) + "-" * 30)
+            self.file_logger.debug("-" * 22 + "round {}".format(round) + "-" * 30)
             # select clients which participate training
             selected = self.clients_selection()
             logging.info("selected clients:{}".format(selected))
@@ -56,7 +57,7 @@ class Server:
             info = self.clients.train(selected, mal_data_clients, mal_model_clients)
 
             glob_weights = None
-            if self.config.use_timpany:
+            if self.config.use_timpany == True:
                 new_info = self.timpany(info)
                 # update glob model
                 glob_weights = self.fed_avg(new_info)
@@ -72,7 +73,7 @@ class Server:
             test_acc, test_loss = self.test()       # global model test accuracy and loss
 
             for i in range(len(info["test_acc"])):
-                # id_round_weight_localLoss_localTest_globaltest_maliciousClientId    
+                # id_round_weight_localLoss_localTest_globaltest
                 self.file_logger.debug(
                     "{0}_{1}_{2}_{3}_{4}_{5}".format(i, round, info["weights"][i], info["loss"][i], info["test_acc"][i], test_acc))
 
