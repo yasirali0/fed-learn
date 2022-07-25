@@ -52,9 +52,10 @@ class Server:
                 print(mal_data_clients)
                 print(mal_model_clients)
 
-            self.file_logger.debug(f"malicious client(s) in round {round}\n:malicious data client(s): {mal_data_clients}\tmalicious model client(s): {mal_model_clients}")
+            self.file_logger.debug(f"malicious client(s) in round {round}:\nmalicious data client(s): {mal_data_clients}\tmalicious model client(s): {mal_model_clients}")
 
-            info = self.clients.train(selected, mal_data_clients, mal_model_clients)
+            lr = self.config.lr * 0.5 ** (round // 50)
+            info = self.clients.train(selected, mal_data_clients, mal_model_clients, lr)
 
             glob_weights = None
             if self.config.use_timpany == True:

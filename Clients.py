@@ -1,3 +1,4 @@
+from typing_extensions import Self
 from torch import nn, optim, poisson
 import torch
 import copy
@@ -40,13 +41,13 @@ class Client:
         self.model = model
         self.local_model = model
 
-    def local_train(self, user_id, dataloaders, poison=False, verbose=1):
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    def local_train(self, user_id, dataloaders, poison=False, lr=0.01):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = copy.deepcopy(self.model)
         model.to(device)
         model.train()
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.SGD(params=model.parameters(), lr=self.config.lr)
+        optimizer = optim.SGD(params=model.parameters(), lr=lr, momentum=0.9, weight_decay=5e-4)
 
         for e in range(self.config.local_ep):
             running_loss = 0
@@ -93,7 +94,7 @@ class Client:
     def update(self, glob_weights):
         self.model.load_state_dict(glob_weights)
 
-    def train(self, selected_client, mal_data_clients, mal_model_clients):
+    def train(self, selected_client, mal_data_clients, mal_model_clients, lr):
         self.weights = []
         self.epoch_loss = []
         self.running_corrects = []
@@ -109,13 +110,13 @@ class Client:
 
         if len(mal_data_clients) == 0:
             for client in selected_client:
-                threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])))
+                threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], lr=lr)))
         else:
             for client in selected_client:
                 if client not in mal_data_clients:
-                    threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client])))
+                    threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], lr=lr)))
                 else:
-                    threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], poison=True)))
+                    threads.append(Thread(target=self.local_train(user_id=client, dataloaders=self.dataloaders[client], lr=lr, poison=True)))
 
 
         [t.start() for t in threads]
@@ -135,7 +136,7 @@ class Client:
         if len(mal_model_clients) != 0:
 
             for client in mal_model_clients:
-                device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
                 tmp = copy.deepcopy(self.model)
                 tmp.to(device)
                 tmp.load_state_dict(self.weights[client])
@@ -155,7 +156,7 @@ class Client:
     def test_local(self, user_id):
         corrects = 0
         test_loss = 0
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.local_model.load_state_dict(self.weights[user_id])
         model = copy.deepcopy(self.local_model)
         model.to(device)
@@ -187,7 +188,7 @@ class Client:
     def test(self):
         corrects = 0
         test_loss = 0
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = copy.deepcopy(self.model)
         model.to(device)
         model.eval()
@@ -232,12 +233,12 @@ def tweak_weights(module):
 
         # add the mean to the weight at random locations
         # module.weight.data.add_(torch.randint_like(module.weight.data, 0, 2) * mean / std)
-        module.weight.data.add_(torch.randint_like(module.weight.data, 0, 7) * mean)
+        module.weight.data.add_(torch.randint_like(module.weight.data, 0, 3) * mean)
 
         # module.weight.data.add_(np.random.randint(1, 3) * mean)
         # module.weight.data.mul_(-1.5)
         # module.bias.data.add_(mean)
-        module.bias.data.add_(torch.randint_like(module.bias.data, 0, 7) * mean)
+        module.bias.data.add_(torch.randint_like(module.bias.data, 0, 3) * mean)
         # module.bias.data.add_(2 * mean)
         # module.bias.data.mul_(-1.5)
     
